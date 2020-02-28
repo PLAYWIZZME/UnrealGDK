@@ -267,24 +267,20 @@ Interest InterestFactory::CreateServerWorkerInterest()
 		UE_LOG(LogInterestFactory, Warning, TEXT("For performance reasons, it's recommended to disable server QBI"));
 	}
 
+	if (!SpatialGDKSettings->bEnableServerQBI && SpatialGDKSettings->bEnableOffloading)
+	{
+		// In offloading scenarios, hijack the server worker entity to ensure each server has interest in all entities
+		Constraint.ComponentConstraint = SpatialConstants::POSITION_COMPONENT_ID;
+	}
+	else
 	{
 		// Server is always interested in a worker component standing for a client connection.
 		// It allows us to know when a client has disconnected
 		// TODO : Migrate the LoadBalancer to use the checked-out worker components instead of making a query ?
-		QueryConstraint componentConstraint;
-		componentConstraint.ComponentConstraint = SpatialConstants::WORKER_COMPONENT_ID;
-		Constraint.OrConstraint.Add(componentConstraint);
-	}
+		QueryConstraint ComponentConstraint;
+		ComponentConstraint.ComponentConstraint = SpatialConstants::WORKER_COMPONENT_ID;
+		Constraint.OrConstraint.Add(ComponentConstraint);
 
-	if (!SpatialGDKSettings->bEnableServerQBI && SpatialGDKSettings->bEnableOffloading)
-	{
-		QueryConstraint componentConstraint;
-		// In offloading scenarios, hijack the server worker entity to ensure each server has interest in all entities
-		componentConstraint.ComponentConstraint = SpatialConstants::POSITION_COMPONENT_ID;
-		Constraint.OrConstraint.Add(componentConstraint);
-	}
-	else
-	{
 		// Ensure server worker receives always relevant entities
 		Constraint.OrConstraint.Add(CreateAlwaysRelevantConstraint());
 	}
